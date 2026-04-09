@@ -508,8 +508,12 @@ enum HFCache {
       filePaths = [snapshotDir.appendingPathComponent(filename).path]
     }
 
+    // Resolve symlinks before reading attributes — HF cache stores symlinks in
+    // snapshot dirs pointing to blobs, and attributesOfItem returns the symlink
+    // size (not the target file size) for symlinks.
     let totalFileSize: Int64 = filePaths.reduce(0) { sum, path in
-      let attrs = try? fm.attributesOfItem(atPath: path)
+      let resolved = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+      let attrs = try? fm.attributesOfItem(atPath: resolved)
       return sum + ((attrs?[.size] as? NSNumber)?.int64Value ?? 0)
     }
 
