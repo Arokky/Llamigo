@@ -196,7 +196,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     let alert = NSAlert()
     alert.alertStyle = .critical
     alert.messageText = "Download Failed"
-    alert.informativeText = "Could not download \(model.displayName).\n\nDetails: \(error)"
+    alert.informativeText = "Could not download \(model.displayName).\n\n\(error)"
     alert.addButton(withTitle: "OK")
     alert.runModal()
   }

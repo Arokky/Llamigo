@@ -534,6 +534,30 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
     if let httpResponse = downloadTask.response as? HTTPURLResponse,
       !(200...299).contains(httpResponse.statusCode)
     {
+      // Map HTTP status codes to user-facing guidance. We deliberately don't claim a
+      // specific cause (rate limit vs. gated repo vs. CDN outage) — Hugging Face uses
+      // these codes for several reasons, so we hedge with "usually" and point the user
+      // at the most common remedy.
+      let userMessage: String
+      switch httpResponse.statusCode {
+      case 401:
+        userMessage =
+          "Hugging Face requires authentication for this download. Set a Hugging Face token in Settings and try again."
+      case 403, 429:
+        userMessage =
+          "Hugging Face refused the download (HTTP \(httpResponse.statusCode)). This usually means a rate limit — try again in a few minutes, or set a Hugging Face token in Settings to lift the limit."
+      case 404:
+        userMessage =
+          "Hugging Face returned 404 for this file. The catalog URL may be out of date — please report this at https://github.com/ggml-org/LlamaBarn/issues."
+      case 500...599:
+        userMessage =
+          "Hugging Face is temporarily unavailable (HTTP \(httpResponse.statusCode)). Try again in a few minutes."
+      default:
+        userMessage = "Download failed with HTTP \(httpResponse.statusCode)."
+      }
+
+      // Keep the Sentry NSError description as the short technical string so existing
+      // issue grouping (LlamaBarn.ModelManager: Code: NNN) stays intact across releases.
       let error = NSError(
         domain: "LlamaBarn.ModelManager",
         code: httpResponse.statusCode,
@@ -550,7 +574,7 @@ class ModelManager: NSObject, URLSessionDownloadDelegate {
         model: model,
         tempLocation: location,
         destinationURL: nil,
-        reason: "HTTP \(httpResponse.statusCode)"
+        reason: userMessage
       )
       return
     }

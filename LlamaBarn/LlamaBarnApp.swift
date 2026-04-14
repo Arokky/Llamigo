@@ -61,6 +61,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
               return nil  // Drop this event
             }
           }
+
+          // Drop Sentry's auto-instrumented HTTPClientError events for huggingface.co —
+          // ModelManager already captures these manually with modelId/url context, and
+          // the auto-instrumentation fires repeatedly per logical failure (e.g. range
+          // request retries) creating large amounts of duplicate noise.
+          if event.exceptions?.first?.mechanism?.type == "HTTPClientError",
+            event.request?.url?.contains("huggingface.co") == true
+          {
+            return nil
+          }
+
           return event
         }
       }
