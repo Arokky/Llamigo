@@ -78,7 +78,7 @@ enum UserSettings {
   // MARK: - Context Tier Preferences
 
   /// Returns the user-selected context tier for a model, or nil if not set.
-  /// When nil, the model should use its highest compatible tier.
+  /// When nil, the model should use the default 4K tier.
   static func selectedCtxTier(for modelId: String) -> ContextTier? {
     guard let dict = defaults.dictionary(forKey: Keys.selectedCtxTiers),
       let rawValue = dict[modelId] as? Int
@@ -87,7 +87,7 @@ enum UserSettings {
   }
 
   /// Sets the user-selected context tier for a model.
-  /// Pass nil to clear the preference and use the default (highest compatible).
+  /// Pass nil to clear the preference and use the default (4K).
   static func setSelectedCtxTier(_ tier: ContextTier?, for modelId: String) {
     var dict = defaults.dictionary(forKey: Keys.selectedCtxTiers) ?? [:]
     if let tier {

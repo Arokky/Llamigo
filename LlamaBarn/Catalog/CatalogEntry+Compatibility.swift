@@ -184,7 +184,7 @@ extension CatalogEntry {
   }
 
   /// The effective context tier for this model.
-  /// Returns user's selection if set and still compatible, otherwise the highest compatible tier.
+  /// Returns user's selection if set and still compatible, otherwise 4K.
   var effectiveCtxTier: ContextTier? {
     let supported = supportedContextTiers
     guard !supported.isEmpty else { return nil }
@@ -196,8 +196,7 @@ extension CatalogEntry {
       return selected
     }
 
-    // Default to highest compatible tier
-    return supported.last
+    return .k4
   }
 
   private struct CompatibilityInfo {
