@@ -6,6 +6,7 @@ import Foundation
 /// - Available: rounded square icon (inactive) + label
 /// - Downloading: rounded square icon (inactive) + progress
 /// - Installed: rounded square icon (inactive) + label
+/// - Installed in catalog drawer: icon + label + checkmark badge, non-interactive
 /// - Loading: rounded square icon (active)
 /// - Running: rounded square icon (active)
 final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
@@ -52,6 +53,11 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
   private let cancelImageView = NSImageView()
   private let unloadButton = NSButton()
 
+  // Checkmark badge shown when the row represents an installed model inside
+  // the catalog family drawer. Communicates "you already have this" without
+  // duplicating the interactive affordances of the installed section.
+  private let installedBadge = NSImageView()
+
   // Hover action buttons (shown on hover for installed models)
   private let copyIdButton = NSButton()
   private let deleteButton = NSButton()
@@ -83,6 +89,12 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     Theme.configure(cancelImageView, symbol: "xmark", color: .systemRed)
     Theme.configure(unloadButton, symbol: "stop.circle", tooltip: "Unload model")
 
+    // Installed badge: subtle checkmark in the accessory area.
+    installedBadge.image = NSImage(
+      systemSymbolName: "checkmark", accessibilityDescription: "Installed")
+    installedBadge.contentTintColor = .tertiaryLabelColor
+    installedBadge.toolTip = "Installed"
+
     unloadButton.target = self
     unloadButton.action = #selector(didClickUnload)
 
@@ -106,6 +118,7 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     unloadButton.isHidden = true
     progressLabel.isHidden = true
     hoverButtonsStack.isHidden = true
+    installedBadge.isHidden = true
 
     setupLayout()
     setupGestures()
@@ -134,7 +147,7 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
 
     // Accessory stack
     let accessoryStack = NSStackView(views: [
-      progressLabel, cancelImageView, hoverButtonsStack, unloadButton,
+      progressLabel, cancelImageView, hoverButtonsStack, unloadButton, installedBadge,
     ])
     accessoryStack.orientation = .horizontal
     accessoryStack.alignment = .centerY
@@ -161,6 +174,7 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     Layout.constrainToIconSize(unloadButton)
     Layout.constrainToIconSize(copyIdButton)
     Layout.constrainToIconSize(deleteButton)
+    Layout.constrainToIconSize(installedBadge)
     progressLabel.widthAnchor.constraint(lessThanOrEqualToConstant: Layout.progressWidth).isActive =
       true
 
@@ -180,12 +194,21 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   @objc private func didClickRow() {
-    if !model.isCompatible() && !modelManager.isInstalled(model) {
+    let isInstalled = modelManager.isInstalled(model)
+
+    if !model.isCompatible() && !isInstalled {
       NSSound.beep()
       return
     }
 
-    if modelManager.isInstalled(model) {
+    // Catalog drawer rows are informational for anything already in the user's
+    // library (installed or downloading). Interactions happen in the installed
+    // section -- avoids, e.g., a click here cancelling an in-progress download.
+    if isInCatalog && modelManager.status(for: model) != .available {
+      return
+    }
+
+    if isInstalled {
       onExpand?()
     } else {
       actionHandler.performPrimaryAction(for: model)
@@ -236,8 +259,10 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     let wasDownloading = !cancelImageView.isHidden
     let isCancelled = wasDownloading && !isDownloading && !isInstalled
 
-    // If the item is in the catalog section, we don't want to show it as downloading yet.
-    // It will be moved to the installed section in the next frame.
+    // Progress and cancel affordances are owned by the installed section --
+    // the drawer stays informational. didClickRow already blocks interaction
+    // for non-available rows in the drawer, so the row's subdued default
+    // appearance is enough.
     let showAsDownloading = !isInCatalog && (isDownloading || isCancelled)
 
     let baseTextColor = showAsDownloading ? Theme.Colors.textSecondary : Theme.Colors.textPrimary
@@ -268,6 +293,10 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     progressLabel.isHidden = !showAsDownloading
     cancelImageView.isHidden = !showAsDownloading
     unloadButton.isHidden = !isActive
+    // Only the in-catalog installed case shows the checkmark badge. The
+    // installed section already signals "installed" through its surrounding
+    // context, so showing a badge there would be redundant.
+    installedBadge.isHidden = !(isInCatalog && isInstalled)
 
     iconView.inactiveTintColor =
       isCompatible ? Theme.Colors.modelIconTint : Theme.Colors.textSecondary
@@ -280,8 +309,12 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   override var highlightEnabled: Bool {
-    // Disable highlight for incompatible models that are not installed
+    // Incompatible, not-installed rows can't be acted on -- no highlight.
     if !model.isCompatible() && !modelManager.isInstalled(model) {
+      return false
+    }
+    // Catalog drawer rows for anything in the user's library are informational.
+    if isInCatalog && modelManager.status(for: model) != .available {
       return false
     }
     return true
@@ -302,5 +335,6 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     unloadButton.contentTintColor = .tertiaryLabelColor
     copyIdButton.contentTintColor = .tertiaryLabelColor
     deleteButton.contentTintColor = .tertiaryLabelColor
+    installedBadge.contentTintColor = .tertiaryLabelColor
   }
 }

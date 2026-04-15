@@ -344,12 +344,11 @@ final class MenuController: NSObject, NSMenuDelegate {
       menu.addItem(NSMenuItem.viewItem(with: descriptionView))
     }
 
+    // The catalog is canonical: every size the family offers is listed, with
+    // installed sizes marked by the row itself.
     let validModels = family.selectableModels()
-    let availableModels = validModels.filter {
-      modelManager.status(for: $0) == .available
-    }
 
-    for model in availableModels {
+    for model in validModels {
       let view = ModelItemView(
         model: model,
         server: server,
@@ -365,19 +364,17 @@ final class MenuController: NSObject, NSMenuDelegate {
     var items: [NSMenuItem] = []
 
     for family in Catalog.activeFamilies {
+      // List every size regardless of install state -- the drawer marks
+      // installed sizes, keeping the family visible even when fully installed.
       let validModels = family.selectableModels()
 
-      let availableModels = validModels.filter {
-        modelManager.status(for: $0) == .available
-      }
-
-      if availableModels.isEmpty {
+      if validModels.isEmpty {
         continue
       }
 
-      // Collect unique sizes for family item from available models
+      // Collect unique sizes for the family row, covering every selectable size.
       let sizes =
-        availableModels
+        validModels
         .sorted { $0.parameterCount < $1.parameterCount }
         .map { model -> (String, Bool) in
           let sizeName = model.size
