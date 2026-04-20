@@ -1,8 +1,10 @@
 import AppKit
-import Sentry
-import Sparkle
 import SwiftUI
 import os.log
+
+#if canImport(Sparkle)
+import Sparkle
+#endif
 
 @main
 struct LlamaBarnApp: App {
@@ -25,7 +27,9 @@ struct LlamaBarnApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+  #if canImport(Sparkle)
   private var updaterController: SPUStandardUpdaterController?
+  #endif
   private let logger = Logger(subsystem: Logging.subsystem, category: "AppDelegate")
   private var menuController: MenuController?
   private var settingsWindowController: SettingsWindowController?
@@ -35,58 +39,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Enable visual debugging if LB_DEBUG_UI is set
     NSView.swizzleDebugBehavior()
 
-    // Initialize Sentry for error reporting (release builds only)
-    #if !DEBUG
-      SentrySDK.start { options in
-        options.dsn =
-          "https://9a490c1c8715f73a0db5f65890165602@o509420.ingest.us.sentry.io/4510221602914304"
-        options.debug = false
-        options.releaseName = AppInfo.shortVersion
-        options.environment = AppInfo.shortVersion == "0.0.0" ? "internal" : "production"
-
-        // Disable Sentry's auto-instrumented HTTP client error capture. ModelManager
-        // already captures Hugging Face failures manually with richer context
-        // (modelId, url), and the auto-instrumentation fires repeatedly per logical
-        // failure (e.g. range request retries) creating large amounts of duplicate
-        // noise. We have no other external HTTP endpoints worth auto-capturing.
-        options.enableCaptureFailedRequests = false
-
-        // Filter out non-actionable network errors globally so they don't use up quota
-        options.beforeSend = { event in
-          if let error = event.error as NSError? {
-            let ignoredCodes = [
-              NSURLErrorCancelled,
-              NSURLErrorNotConnectedToInternet,
-              NSURLErrorNetworkConnectionLost,
-            ]
-            if error.domain == NSURLErrorDomain && ignoredCodes.contains(error.code) {
-              return nil  // Drop this event
-            }
-          }
-          return event
-        }
-      }
-    #endif
+    ErrorReporting.startIfAvailable(
+      releaseName: AppInfo.shortVersion,
+      environment: AppInfo.shortVersion == "0.0.0" ? "internal" : "production"
+    )
 
     logger.info("LlamaBarn starting up")
 
     // Configure app as menu bar only (removes from Dock)
     NSApp.setActivationPolicy(.accessory)
 
-    // Set up automatic updates using Sparkle framework
-    // Skip starting the updater for debug builds to avoid false update prompts
-    #if DEBUG
-      let startUpdater = false
-    #else
-      let startUpdater = true
+    #if canImport(Sparkle)
+      // Set up automatic updates using Sparkle framework
+      // Skip starting the updater for debug builds to avoid false update prompts
+      #if DEBUG
+        let startUpdater = false
+      #else
+        let startUpdater = true
+      #endif
+      updaterController = SPUStandardUpdaterController(
+        startingUpdater: startUpdater,
+        updaterDelegate: self,
+        userDriverDelegate: self
+      )
     #endif
-    updaterController = SPUStandardUpdaterController(
-      startingUpdater: startUpdater,
-      // Capture errors and events for logging/troubleshooting
-      updaterDelegate: self,
-      // Use our custom UI handling for gentle reminders
-      userDriverDelegate: self
-    )
 
     // Initialize the shared model library manager to scan for existing models
     _ = ModelManager.shared
@@ -104,7 +80,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     updatesObserver = NotificationCenter.default.addObserver(
       forName: .LBCheckForUpdates, object: nil, queue: .main
     ) { [weak self] _ in
+      #if canImport(Sparkle)
       self?.updaterController?.checkForUpdates(nil)
+      #else
+      _ = self
+      #endif
     }
 
     #if DEBUG
@@ -128,37 +108,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 }
 
-// MARK: - SPUStandardUserDriverDelegate
+#if canImport(Sparkle)
+  // MARK: - SPUStandardUserDriverDelegate
 
-extension AppDelegate: SPUStandardUserDriverDelegate {
-  // Tells Sparkle this app supports gentle reminders for background update checks.
-  // This prevents intrusive modal dialogs and allows us to show dock badges instead.
-  var supportsGentleScheduledUpdateReminders: Bool {
-    true
+  extension AppDelegate: SPUStandardUserDriverDelegate {
+    var supportsGentleScheduledUpdateReminders: Bool {
+      true
+    }
+
+    func standardUserDriverWillHandleShowingUpdate(
+      _ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState
+    ) {
+      NSApp.setActivationPolicy(.regular)
+    }
+
+    func standardUserDriverWillFinishUpdateSession() {
+      NSApp.setActivationPolicy(.accessory)
+    }
   }
 
-  // Called when Sparkle is about to show an update dialog.
-  // We use this to switch from menu bar mode to dock app mode so the dialog appears properly.
-  func standardUserDriverWillHandleShowingUpdate(
-    _ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState
-  ) {
-    // Always show in dock when update dialog will appear
-    NSApp.setActivationPolicy(.regular)
-  }
+  // MARK: - SPUUpdaterDelegate
 
-  // Called when the update process is completely finished (installed, skipped, or dismissed).
-  // We use this to return the app to menu bar mode.
-  func standardUserDriverWillFinishUpdateSession() {
-    // Return to menu bar mode
-    NSApp.setActivationPolicy(.accessory)
+  extension AppDelegate: SPUUpdaterDelegate {
+    func updater(_ updater: SPUUpdater, didFailToCheckForUpdatesWithError error: Error) {
+      logger.error(
+        "Sparkle: failed to check for updates: \(error.localizedDescription, privacy: .public)")
+    }
   }
-}
-
-// MARK: - SPUUpdaterDelegate
-
-extension AppDelegate: SPUUpdaterDelegate {
-  func updater(_ updater: SPUUpdater, didFailToCheckForUpdatesWithError error: Error) {
-    logger.error(
-      "Sparkle: failed to check for updates: \(error.localizedDescription, privacy: .public)")
-  }
-}
+#endif

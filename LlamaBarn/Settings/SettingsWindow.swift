@@ -365,7 +365,3 @@ struct HFTokenSheet: View {
     }
   }
 }
-
-#Preview {
-  SettingsView()
-}
