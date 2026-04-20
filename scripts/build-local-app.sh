@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-APP_NAME="LlamaBarn"
+APP_NAME="Llamigo"
 BUILD_ROOT="$REPO_ROOT/build"
 APP_BUNDLE="$BUILD_ROOT/$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
@@ -28,8 +28,9 @@ done < <(find "$REPO_ROOT/LlamaBarn" -name '*.swift' -print0 | sort -z)
 
 plutil -convert xml1 "$REPO_ROOT/LlamaBarn/Info.plist" -o "$CONTENTS_DIR/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string $APP_NAME" "$CONTENTS_DIR/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable $APP_NAME" "$CONTENTS_DIR/Info.plist"
-/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string app.llamabarn.LlamaBarn" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string app.llamigo.Llamigo" "$CONTENTS_DIR/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier app.llamigo.Llamigo" "$CONTENTS_DIR/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :CFBundleName string $APP_NAME" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $APP_NAME" "$CONTENTS_DIR/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$CONTENTS_DIR/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 0.0.0-local" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string local" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
@@ -51,7 +52,8 @@ swiftc \
 
 cp -R "$REPO_ROOT/llama-cpp" "$MACOS_DIR/llama-cpp"
 cp "$REPO_ROOT/llama-cpp/version.txt" "$RESOURCES_DIR/version.txt"
-cp "$REPO_ROOT/LlamaBarn/LlamaBarn.sdef" "$RESOURCES_DIR/LlamaBarn.sdef"
+cp "$REPO_ROOT/LlamaBarn/LlamaBarn.sdef" "$RESOURCES_DIR/Llamigo.sdef"
+/usr/libexec/PlistBuddy -c "Set :OSAScriptingDefinition Llamigo.sdef" "$CONTENTS_DIR/Info.plist"
 
 cat > "$ENTITLEMENTS_PATH" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

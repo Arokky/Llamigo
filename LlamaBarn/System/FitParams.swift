@@ -230,7 +230,7 @@ enum FitParamsCache {
   }
 
   private static var cacheDir: URL {
-    let bundleId = Bundle.main.bundleIdentifier ?? "app.llamabarn.LlamaBarn"
+    let bundleId = Bundle.main.bundleIdentifier ?? "app.llamigo.Llamigo"
     return FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
       .appendingPathComponent(bundleId)
       .appendingPathComponent("fitparams")

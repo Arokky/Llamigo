@@ -7,7 +7,7 @@ final class WelcomePopover: NSViewController, NSPopoverDelegate {
   private var clickMonitor: Any?
 
   override func loadView() {
-    let label = NSTextField(labelWithString: "Hello, I'm LlamaBarn")
+    let label = NSTextField(labelWithString: "Hello, I'm Llamigo")
     label.font = .systemFont(ofSize: 13)
     label.textColor = .controlTextColor
     label.isBezeled = false

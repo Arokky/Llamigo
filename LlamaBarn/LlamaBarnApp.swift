@@ -44,7 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       environment: AppInfo.shortVersion == "0.0.0" ? "internal" : "production"
     )
 
-    logger.info("LlamaBarn starting up")
+    logger.info("Llamigo starting up")
 
     // Configure app as menu bar only (removes from Dock)
     NSApp.setActivationPolicy(.accessory)
@@ -94,11 +94,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       }
     #endif
 
-    logger.info("LlamaBarn startup complete")
+    logger.info("Llamigo startup complete")
   }
 
   func applicationWillTerminate(_ notification: Notification) {
-    logger.info("LlamaBarn shutting down")
+    logger.info("Llamigo shutting down")
 
     // Gracefully stop the llama-server process when app quits
     LlamaServer.shared.stop()
