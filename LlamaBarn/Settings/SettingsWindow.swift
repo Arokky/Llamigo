@@ -36,7 +36,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     // Create the window
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 440, height: 200),
+      contentRect: NSRect(x: 0, y: 0, width: 440, height: 320),
       styleMask: [.titled, .closable],
       backing: .buffered,
       defer: false
@@ -65,6 +65,7 @@ struct SettingsView: View {
   @State private var launchAtLogin = LaunchAtLogin.isEnabled
   @State private var sleepIdleTime = UserSettings.sleepIdleTime
   @State private var hfCacheDir = UserSettings.hfCacheDirectory
+  @State private var externalModelsDir = UserSettings.externalModelsDirectory
   @State private var hfToken = UserSettings.hfToken ?? ""
   @State private var showingHFTokenSheet = false
 
@@ -157,6 +158,51 @@ struct SettingsView: View {
             .foregroundStyle(.secondary)
         }
       }
+
+      // External models directory section
+      Section {
+        VStack(alignment: .leading, spacing: 8) {
+          HStack(spacing: 6) {
+            Text("External models")
+              .fixedSize()
+
+            Spacer()
+
+            Text(externalModelsDir.map(abbreviatedPath) ?? "Not set")
+              .font(.callout)
+              .foregroundStyle(.secondary)
+              .textSelection(.enabled)
+              .lineLimit(1)
+              .truncationMode(.middle)
+              .layoutPriority(-1)
+
+            if UserSettings.hasExternalModelsDirectory {
+              Button {
+                UserSettings.externalModelsDirectory = nil
+                externalModelsDir = nil
+                ModelManager.shared.refreshDownloadedModels()
+              } label: {
+                Text("↺")
+              }
+              .font(.callout)
+              .controlSize(.small)
+              .help("Clear external models folder")
+              .fixedSize()
+            }
+
+            Button("Select...") {
+              chooseExternalModelsFolder()
+            }
+            .font(.callout)
+            .controlSize(.small)
+            .fixedSize()
+          }
+
+          Text("Optional: scan one local folder of GGUF models without copying them.")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        }
+      }
       // Optional HF access token section
       Section {
         VStack(alignment: .leading, spacing: 8) {
@@ -209,6 +255,24 @@ struct SettingsView: View {
     if panel.runModal() == .OK, let url = panel.url {
       UserSettings.hfCacheDirectory = url
       hfCacheDir = url
+      ModelManager.shared.refreshDownloadedModels()
+    }
+  }
+
+  /// Opens a folder picker for an external GGUF folder.
+  private func chooseExternalModelsFolder() {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = false
+    panel.canChooseDirectories = true
+    panel.canCreateDirectories = false
+    panel.allowsMultipleSelection = false
+    panel.message = "Choose a folder containing GGUF models"
+    panel.prompt = "Select"
+    panel.directoryURL = externalModelsDir ?? FileManager.default.homeDirectoryForCurrentUser
+
+    if panel.runModal() == .OK, let url = panel.url {
+      UserSettings.externalModelsDirectory = url
+      externalModelsDir = url
       ModelManager.shared.refreshDownloadedModels()
     }
   }

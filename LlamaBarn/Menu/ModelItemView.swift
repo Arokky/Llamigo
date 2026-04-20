@@ -247,11 +247,13 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
   }
 
   func refresh() {
+    let resolvedSource = modelManager.resolvedPaths[model.id]?.source
     let isActive = server.isActive(model: model)
     let isLoading = server.isLoading(model: model)
     let progress = modelManager.downloadProgress(for: model)
     let isDownloading = progress != nil
     let isInstalled = modelManager.isInstalled(model)
+    let canDelete = isInstalled && resolvedSource != .externalFolder
 
     // If the item was downloading and is now available (cancelled), it will be removed from the list.
     // We preserve the "downloading" styling to avoid a flicker of the "available" styling (primary color)
@@ -293,6 +295,7 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     progressLabel.isHidden = !showAsDownloading
     cancelImageView.isHidden = !showAsDownloading
     unloadButton.isHidden = !isActive
+    deleteButton.isHidden = !canDelete
     // Only the in-catalog installed case shows the checkmark badge. The
     // installed section already signals "installed" through its surrounding
     // context, so showing a badge there would be redundant.
@@ -325,6 +328,8 @@ final class ModelItemView: ItemView, NSGestureRecognizerDelegate {
     let isInstalled = modelManager.isInstalled(model)
     let isActive = server.isActive(model: model)
     let isDownloading = modelManager.isDownloading(model)
+    let canDelete = modelManager.resolvedPaths[model.id]?.source != .externalFolder
+    deleteButton.isHidden = !canDelete
     let showHoverButtons = highlighted && isInstalled && !isActive && !isDownloading
     hoverButtonsStack.isHidden = !showHoverButtons
   }

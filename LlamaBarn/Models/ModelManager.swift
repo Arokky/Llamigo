@@ -301,7 +301,10 @@ class ModelManager: NSObject, URLSessionDataDelegate {
         HFCache.removePartials(cacheDir: cacheDir, modelId: modelId)
 
         if let paths {
-          if paths.isLegacy {
+          if paths.source == .externalFolder {
+            // External models are user-owned references. Removing them from the
+            // library must never delete the original files from disk.
+          } else if paths.isLegacy {
             // Legacy: delete files directly
             for path in paths.allPaths {
               if FileManager.default.fileExists(atPath: path) {
@@ -471,7 +474,7 @@ class ModelManager: NSObject, URLSessionDataDelegate {
             modelFile: legacyDir.appendingPathComponent(mainFile).path,
             additionalParts: partPaths,
             mmprojFile: mmprojPath,
-            isLegacy: true
+            source: .legacy
           )
         }
       }
@@ -502,7 +505,25 @@ class ModelManager: NSObject, URLSessionDataDelegate {
         sideloadedEntries.append(entry)
       }
 
-      // 4. Build downloaded models list from resolved paths
+      // 4. Discover GGUF files from the optional external folder
+      if let externalDir = UserSettings.externalModelsDirectory,
+        FileManager.default.fileExists(atPath: externalDir.path)
+      {
+        let externalModels = ExternalModelScanner.scan(folder: externalDir)
+        for (entry, paths) in externalModels {
+          var entry = entry
+          if let cached = FitParamsCache.get(modelId: entry.id) {
+            entry.ctxBytesPer1kTokens = cached.ctxBytesPer1kTokens
+            entry.fitResidentBytes = cached.residentBytes
+          } else {
+            needsFitParams.append((id: entry.id, path: paths.modelFile))
+          }
+          allResolved[entry.id] = paths
+          sideloadedEntries.append(entry)
+        }
+      }
+
+      // 5. Build downloaded models list from resolved paths
       let finalResolved = allResolved
       let catalogDownloaded = allCatalogModels.filter { finalResolved[$0.id] != nil }
       let allDownloaded = catalogDownloaded + sideloadedEntries

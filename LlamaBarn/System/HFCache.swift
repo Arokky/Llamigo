@@ -406,7 +406,7 @@ enum HFCache {
             modelFile: snapshotDir.appendingPathComponent(mainFile).path,
             additionalParts: partPaths,
             mmprojFile: mmprojPath,
-            isLegacy: false
+            source: .hfCache
           )
 
           // Track matched files so scanForSideloaded() can skip them
@@ -625,7 +625,7 @@ enum HFCache {
       modelFile: mainFilePath,
       additionalParts: additionalParts,
       mmprojFile: nil,
-      isLegacy: false,
+      source: .hfCache,
       hfRepoDirName: repoDir
     )
 

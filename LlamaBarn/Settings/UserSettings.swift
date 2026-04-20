@@ -24,6 +24,7 @@ enum UserSettings {
     static let sleepIdleTime = "sleepIdleTime"
     static let selectedCtxTiers = "selectedCtxTiers"
     static let hfCacheDirectory = "hfCacheDirectory"
+    static let externalModelsDirectory = "externalModelsDirectory"
     static let hfToken = "hfToken"
   }
 
@@ -161,6 +162,33 @@ enum UserSettings {
   /// Whether a custom HF cache directory is configured
   static var hasCustomHFCacheDirectory: Bool {
     defaults.string(forKey: Keys.hfCacheDirectory) != nil
+  }
+
+  // MARK: - External Models Directory
+
+  /// Optional user-selected external folder scanned for GGUF files.
+  static var externalModelsDirectory: URL? {
+    get {
+      guard let path = defaults.string(forKey: Keys.externalModelsDirectory), !path.isEmpty else {
+        return nil
+      }
+      return URL(fileURLWithPath: path, isDirectory: true)
+    }
+    set {
+      let current = defaults.string(forKey: Keys.externalModelsDirectory)
+      let next = newValue?.path
+      guard current != next else { return }
+      if let next {
+        defaults.set(next, forKey: Keys.externalModelsDirectory)
+      } else {
+        defaults.removeObject(forKey: Keys.externalModelsDirectory)
+      }
+      NotificationCenter.default.post(name: .LBUserSettingsDidChange, object: nil)
+    }
+  }
+
+  static var hasExternalModelsDirectory: Bool {
+    defaults.string(forKey: Keys.externalModelsDirectory) != nil
   }
 
   // MARK: - Hugging Face Token
