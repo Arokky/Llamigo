@@ -33,6 +33,8 @@ plutil -convert xml1 "$REPO_ROOT/LlamaBarn/Info.plist" -o "$CONTENTS_DIR/Info.pl
 /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 0.0.0-local" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string local" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :LSUIElement bool YES" "$CONTENTS_DIR/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :LSUIElement YES" "$CONTENTS_DIR/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :LSApplicationCategoryType string public.app-category.utilities" "$CONTENTS_DIR/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :LSApplicationCategoryType public.app-category.utilities" "$CONTENTS_DIR/Info.plist"
 /usr/libexec/PlistBuddy -c "Delete :SUFeedURL" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Delete :SUPublicEDKey" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Delete :SUEnableAutomaticChecks" "$CONTENTS_DIR/Info.plist" 2>/dev/null || true
