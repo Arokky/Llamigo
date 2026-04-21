@@ -60,7 +60,8 @@ final class MenuController: NSObject, NSMenuDelegate {
   private func configureStatusItem() {
     if let button = statusItem.button {
       button.image =
-        NSImage(named: "MenuIcon")
+        Bundle.main.url(forResource: "MenuIcon", withExtension: "pdf").flatMap(NSImage.init)
+        ?? NSImage(named: "MenuIcon")
         ?? NSImage(systemSymbolName: "brain", accessibilityDescription: nil)
       button.image?.isTemplate = true
       // Dim the icon when no model is loaded

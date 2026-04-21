@@ -1,5 +1,4 @@
 import Foundation
-import Sentry
 import os.log
 
 /// Represents the current status of a model
@@ -693,7 +692,7 @@ class ModelManager: NSObject, URLSessionDataDelegate {
           "modelId": modelId,
           "url": dataTask.originalRequest?.url?.absoluteString ?? "unknown",
         ])
-      SentrySDK.capture(error: nsErr)
+      ErrorReporting.capture(error: nsErr)
       completionHandler(.cancel)
       handleDownloadFailure(modelId: modelId, model: model, reason: message)
       return
@@ -787,8 +786,8 @@ class ModelManager: NSObject, URLSessionDataDelegate {
         return
       }
 
-      // Capture remaining errors to Sentry; the SDK config in LlamaBarnApp filters common noise.
-      SentrySDK.capture(error: error)
+      // Capture remaining errors through the shared reporting shim.
+      ErrorReporting.capture(error: error)
 
       DispatchQueue.main.async { [weak self] in
         guard let self = self else { return }
