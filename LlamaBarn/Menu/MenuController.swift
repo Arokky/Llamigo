@@ -5,6 +5,7 @@ import Foundation
 /// Breaks menu construction into section helpers so each concern stays focused.
 @MainActor
 final class MenuController: NSObject, NSMenuDelegate {
+  private static let menuBarIconSize = NSSize(width: 18, height: 18)
   private let statusItem: NSStatusItem
   private let modelManager: ModelManager
   private let server: LlamaServer
@@ -59,11 +60,17 @@ final class MenuController: NSObject, NSMenuDelegate {
 
   private func configureStatusItem() {
     if let button = statusItem.button {
-      button.image =
+      let image =
         Bundle.main.url(forResource: "MenuIcon", withExtension: "pdf").flatMap(NSImage.init)
         ?? NSImage(named: "MenuIcon")
         ?? NSImage(systemSymbolName: "brain", accessibilityDescription: nil)
-      button.image?.isTemplate = true
+
+      image?.size = Self.menuBarIconSize
+      image?.isTemplate = true
+
+      button.image = image
+      button.imageScaling = .scaleProportionallyDown
+      button.imagePosition = .imageOnly
       // Dim the icon when no model is loaded
       button.alphaValue = server.isAnyModelLoaded ? 1.0 : 0.35
     }
